@@ -10,22 +10,25 @@ using ApplicationCore.Models;
 using ApplicationCore.Services;
 using ApplicationCore.Models.User;
 using ApplicationCore.Interfaces.Repositories;
+using DataAccess.Contexts;
 
 namespace DataAccess.Repositories.CardsRepository
 {
     public class CardsRepository : ICardsRepository
     {
         private readonly IConfiguration _configuration;
-        public CardsRepository(IConfiguration configuration)
+        private readonly RemberDbContext _context;
+        public CardsRepository(IConfiguration configuration, RemberDbContext context)
         {
             _configuration = configuration;
+            _context = context;
         }
         public async Task<IEnumerable<Card>> ListAsync()
         {
-            using (var connection = new SqlConnection(_configuration.GetConnectionString("RemberConn")))
+            using (var connection = _context.Connect())
             {
-                string sql = "SELECT c.Id, c.Front, c.Back, c.UserId, u.Id, u.Username, u.Email, u.CreatedAt FROM Cards c INNER JOIN Users u ON c.UserId = u.Id;";
-                IEnumerable<Card> cards = await connection.QueryAsync<Card, BaseUser, Card>(sql, (card, user) => { card.User = user; return card; }, splitOn: "Id");
+                string sql = "SELECT c.Id, c.Front, c.Back, c.UserId, d.Id, d.Name, FROM Cards c INNER JOIN Decks d ON c.DeckId = d.Id;";
+                IEnumerable<Card> cards = await connection.QueryAsync<Card, Deck, Card>(sql, (card, deck) => { card.Deck = deck; return card; }, splitOn: "Id");
 
                 return cards;
             }

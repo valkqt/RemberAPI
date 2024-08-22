@@ -1,9 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Identity.Abstractions;
-using Microsoft.Identity.Web;
-using Microsoft.Identity.Web.Resource;
-using DataAccess.Repositories;
 using DataAccess.Repositories.CardsRepository;
 using ApplicationCore.Services;
 using Microsoft.IdentityModel.Tokens;
@@ -12,11 +7,13 @@ using DataAccess.Repositories.UsersRepository;
 using ApplicationCore.Interfaces.Repositories;
 using ApplicationCore.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
-using System.IdentityModel.Tokens.Jwt;
-using ApplicationCore.Authorization;
 using ApplicationCore.Authorization.AuthorizeJwtPolicy;
-using Microsoft.Extensions.Options;
 using ApplicationCore.Authorization.AuthorizeUserPolicy;
+using FluentMigrator.Runner;
+using DataAccess.Contexts;
+using DataAccess.Extensions;
+using DataAccess.Migrations;
+using DataAccess.Repositories.DecksRepository;
 
 namespace RemberAPI
 {
@@ -33,12 +30,16 @@ namespace RemberAPI
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+
             builder.Services.AddScoped<ICardsRepository, CardsRepository>();
             builder.Services.AddScoped<IUsersRepository, UsersRepository>();
+            builder.Services.AddScoped<IDecksRepository, DecksRepository>();
             builder.Services.AddScoped<IUsersService, UsersService>();
             builder.Services.AddScoped<ICardsService, CardsService>();
             builder.Services.AddScoped<IJWTAuthService, JWTAuthService>();
             builder.Services.AddScoped<IAuthCookieService, AuthCookieService>();
+            builder.Services.AddScoped<IDecksService, DecksService>();
+
 
             //builder.Services.AddSingleton<IAuthorizationHandler, UserCanAccessHandler>();
 
@@ -48,6 +49,13 @@ namespace RemberAPI
 
             builder.Services.AddSingleton<IAuthorizationHandler, AuthorizeJwtHandler>();
             builder.Services.AddSingleton<IAuthorizationHandler, AuthorizeUserHandler>();
+
+            builder.Services.AddSingleton<RemberDbContext>();
+            builder.Services.AddLogging(c => c.AddFluentMigratorConsole())
+                    .AddFluentMigratorCore()
+                    .ConfigureRunner(c => c.AddSqlServer2012()
+                        .WithGlobalConnectionString(builder.Configuration.GetConnectionString("RemberConn"))
+                        .ScanIn(typeof(M0003_ChangeCardFK).Assembly).For.Migrations());
 
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -82,6 +90,8 @@ namespace RemberAPI
 
             var app = builder.Build();
 
+
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -104,6 +114,9 @@ namespace RemberAPI
 
 
             app.MapControllers();
+
+            app.MigrateDatabase();
+
 
             app.Run();
 

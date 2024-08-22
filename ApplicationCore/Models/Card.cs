@@ -15,16 +15,16 @@ namespace ApplicationCore.Models
         public int UserId { get; set; }
         public string Front { get; set; }
         public string Back { get; set; }
-        public virtual BaseUser? User { get; set; }
+        public virtual Deck? Deck { get; set; }
         public Card() { }
 
-        public Card(int id, int userId, string front, string back, BaseUser? user)
+        public Card(int id, int userId, string front, string back, Deck? deck)
         {
             Id = id;
             UserId = userId;
             Front = front;
             Back = back;
-            User = user;
+            Deck = deck;
         }
     }
 }
